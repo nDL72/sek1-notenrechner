@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Notenrechner SEK I</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="container">
+    <h1>SEK I Notenrechner Niedersachsen</h1>
+    <table id="gradeTable">
+      <thead><tr><th>Fach</th><th>Note</th><th>Kursart</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="actions">
+      <button id="compute">Berechnen</button>
+      <button id="save">Speichern</button>
+      <button id="pdf">Export PDF</button>
+      <button id="print">Drucken</button>
+    </div>
+    <div id="results"></div>
+    <canvas id="chart"></canvas>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
