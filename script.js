@@ -77,20 +77,45 @@ function computeGrades() {
   const count6 = grades.filter(g => g.note === 6).length;
   const eCourses = grades.filter(g => g.kurs === 'E');
   const eCount = eCourses.length;
-  const eGood = eCourses.filter(g => g.note === 2).length;
-  const eOK = eCourses.filter(g => g.note === 3).length;
+  const eGood = eCourses.filter(g => g.note <= 2).length;
+  const eOK = eCourses.filter(g => g.note <= 3).length;
 
   const results = [];
-  const hsOk = (count6 === 0 && count5 <= 1) || (count5 === 2 && count6 === 0);
-  results.push({ name: 'Hauptschulabschluss', ok: hsOk });
-
+  const hsOk = (count6 === 0 && count5 <= 2);
   const rsOk = hsOk && avgBonus <= 3.00 && eCount >= 1;
-  results.push({ name: 'Realschulabschluss', ok: rsOk });
+  const ewsOk = rsOk && eCount >= 2 && eGood >= 1 && eOK >= 2 && avgBonus <= 2.00;
 
-  const eOk = rsOk && eCount >= 2 && eGood >= 1 && eOK >= 1 && avgBonus <= 2.00;
-  results.push({ name: 'Erweiterter Sek. I', ok: eOk });
+  results.push({
+    name: 'Hauptschulabschluss',
+    ok: hsOk,
+    reasons: [
+      `Ø-Note: ${avgBonus} (${hsOk ? '✅' : '❌'})`,
+      `max. 2x Note 5: ${count5}, Note 6: ${count6} (${hsOk ? '✅' : '❌'})`
+    ]
+  });
+  results.push({
+    name: 'Realschulabschluss',
+    ok: rsOk,
+    reasons: [
+      `HS erreicht: ${hsOk ? '✅' : '❌'}`,
+      `Ø-Note mit Bonus ≤ 3,0: ${avgBonus} (${avgBonus <= 3.0 ? '✅' : '❌'})`,
+      `mind. 1 E-Kurs belegt: ${eCount} (${eCount >= 1 ? '✅' : '❌'})`
+    ]
+  });
+  results.push({
+    name: 'Erweiterter Sek. I',
+    ok: ewsOk,
+    reasons: [
+      `RS erreicht: ${rsOk ? '✅' : '❌'}`,
+      `mind. 2 E-Kurse: ${eCount} (${eCount >= 2 ? '✅' : '❌'})`,
+      `davon mind. 1 mit Note ≤ 2: ${eGood} (${eGood >= 1 ? '✅' : '❌'})`,
+      `und 2 mit Note ≤ 3: ${eOK} (${eOK >= 2 ? '✅' : '❌'})`,
+      `Ø-Note mit Bonus ≤ 2,0: ${avgBonus} (${avgBonus <= 2.0 ? '✅' : '❌'})`
+    ]
+  });
 
   renderResults(results, avg, avgBonus, count5, count6, eCount);
+  window.lastResults = results; // für PDF exportieren
 }
 
 function renderResults(results, avg, avgB, count5, count6, eCount) {
@@ -100,7 +125,8 @@ function renderResults(results, avg, avgB, count5, count6, eCount) {
     <p>⛔ 5er: ${count5}, 6er: ${count6}, E-Kurse: ${eCount}</p>
     ${results.map(r => `
       <div class="card ${r.ok ? 'ok' : 'fail'}">
-        <strong>${r.name}</strong>: ${r.ok ? '✅ erreicht' : '❌ nicht erreicht'}
+        <strong>${r.name}</strong>: ${r.ok ? '✅ erreicht' : '❌ nicht erreicht'}<br />
+        ${r.reasons.map(reason => `<div>${reason}</div>`).join('')}
       </div>`).join('')}
   `;
 }
@@ -116,9 +142,19 @@ function exportPDF() {
       doc.text(`${g.fach}: ${g.note} (${g.kurs}-Kurs)`, 10, y);
       y += 7;
     });
-    const p = document.getElementById('results').innerText.split('\n');
     y += 5;
-    p.forEach(line => { doc.text(line, 10, y); y += 7; });
+    doc.setFontSize(12);
+    doc.text('Ergebnisse:', 10, y);
+    y += 6;
+    (window.lastResults || []).forEach(result => {
+      doc.text(`${result.name}: ${result.ok ? '✅ erreicht' : '❌ nicht erreicht'}`, 10, y);
+      y += 6;
+      result.reasons.forEach(r => {
+        doc.text(`  • ${r}`, 12, y);
+        y += 5;
+      });
+      y += 2;
+    });
     doc.save('notenrechner_seki.pdf');
   });
 }
