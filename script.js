@@ -3,7 +3,7 @@ const requiredSubjects = [
   'Deutsch','Englisch','Mathematik','Chemie',
   'Physik','Biologie','Geschichte','Erdkunde',
   'Politik','Wirtschaft','Religion','Sport',
-  'Musik','Kunst','Informatik','WPK 1','WPK 2'
+  'Musik','Kunst','Informatik','WPK 1','WPK 2 (optional)'
 ];
 
 const eCourseSubjects = ['Deutsch','Englisch','Mathematik','Chemie'];
