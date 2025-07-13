@@ -15,9 +15,9 @@ function initTable() {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${sub}</td>
-      <td><input type="number" min="1" max="6" class="note" value="6" /></td>
+      <td><input type="number" min="1" max="6" class="note" /></td>
       <td>
-        ${eCourseSubjects.includes(sub) ? `
+        ${eCourseSubjects.includes(sub.replace(' (optional)', '')) ? `
         <select class="kurs">
           <option value="G">G</option>
           <option value="E">E</option>
@@ -30,11 +30,12 @@ function initTable() {
 function serializeGrades() {
   return [...tableBody.querySelectorAll('tr')].map(row => {
     const fach = row.cells[0].textContent;
-    const note = parseInt(row.querySelector('.note').value) || 6;
-    const kurs = eCourseSubjects.includes(fach)
+    const noteValue = row.querySelector('.note').value;
+    const note = parseInt(noteValue);
+    const kurs = eCourseSubjects.includes(fach.replace(' (optional)', ''))
       ? row.querySelector('.kurs').value
       : 'G';
-    return { fach, note, kurs };
+    return { fach, note: isNaN(note) ? null : note, kurs };
   });
 }
 
@@ -49,9 +50,10 @@ function loadData() {
   if (data) {
     const grades = JSON.parse(data);
     [...tableBody.querySelectorAll('tr')].forEach((row, i) => {
-      row.querySelector('.note').value = grades[i].note;
+      const noteInput = row.querySelector('.note');
+      if (grades[i].note !== null) noteInput.value = grades[i].note;
       const kursEl = row.querySelector('.kurs');
-      if (kursEl) kursEl.value = grades[i].kurs;
+      if (kursEl && grades[i].kurs) kursEl.value = grades[i].kurs;
     });
   }
 }
@@ -62,7 +64,10 @@ document.getElementById('print').onclick = () => window.print();
 
 function computeGrades() {
   const grades = serializeGrades();
-  const bonusAdjusted = grades.map(g => {
+  const filtered = grades.filter(g => !(g.fach.startsWith('WPK 2') && (g.note === null || g.note === 6)));
+
+  const avg = (filtered.reduce((a, c) => a + c.note, 0) / filtered.length).toFixed(2);
+  const bonusAdjusted = filtered.map(g => {
     let n = g.note;
     if (g.kurs === 'E') {
       if (n === 4) n = 3;
@@ -70,12 +75,11 @@ function computeGrades() {
     }
     return n;
   });
+  const avgBonus = (bonusAdjusted.reduce((a, c) => a + c, 0) / filtered.length).toFixed(2);
 
-  const avg = (grades.reduce((a, c) => a + c.note, 0) / grades.length).toFixed(2);
-  const avgBonus = (bonusAdjusted.reduce((a, c) => a + c, 0) / grades.length).toFixed(2);
   const count5 = grades.filter(g => g.note === 5).length;
   const count6 = grades.filter(g => g.note === 6).length;
-  const eCourses = grades.filter(g => g.kurs === 'E');
+  const eCourses = grades.filter(g => g.kurs === 'E' && g.note !== null);
   const eCount = eCourses.length;
   const eGood = eCourses.filter(g => g.note <= 2).length;
   const eOK = eCourses.filter(g => g.note <= 3).length;
@@ -115,7 +119,7 @@ function computeGrades() {
   });
 
   renderResults(results, avg, avgBonus, count5, count6, eCount);
-  window.lastResults = results; // für PDF exportieren
+  window.lastResults = results;
 }
 
 function renderResults(results, avg, avgB, count5, count6, eCount) {
@@ -139,7 +143,8 @@ function exportPDF() {
     doc.text('SEK I Notenrechner Übersicht', 10, 10);
     let y = 20;
     grades.forEach(g => {
-      doc.text(`${g.fach}: ${g.note} (${g.kurs}-Kurs)`, 10, y);
+      const noteText = g.note !== null ? g.note : '-';
+      doc.text(`${g.fach}: ${noteText} (${g.kurs}-Kurs)`, 10, y);
       y += 7;
     });
     y += 5;
